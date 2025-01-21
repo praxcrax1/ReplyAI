@@ -11,6 +11,7 @@ import {
     Animated,
     Keyboard,
     TouchableWithoutFeedback,
+    PanResponder,
 } from "react-native";
 import { useTheme } from "../styles/theme";
 import { generateResponse } from "../utils/geminiApi";
@@ -30,26 +31,60 @@ export default function ChatScreen() {
     const insets = useSafeAreaInsets();
     const thinkingAnimation = useRef(new Animated.Value(0)).current;
 
+    const panResponder = useRef(
+        PanResponder.create({
+            onStartShouldSetPanResponder: () => true,
+            onMoveShouldSetPanResponder: (_, gestureState) => {
+                return Math.abs(gestureState.dy) > Math.abs(gestureState.dx);
+            },
+            onPanResponderMove: (_, gestureState) => {
+                if (gestureState.dy > 10) {
+                    Keyboard.dismiss();
+                }
+            },
+        })
+    ).current;
+
+    const startThinkingAnimation = () => {
+        Animated.loop(
+            Animated.sequence([
+                Animated.timing(thinkingAnimation, {
+                    toValue: 1,
+                    duration: 600,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(thinkingAnimation, {
+                    toValue: 0.3,
+                    duration: 600,
+                    useNativeDriver: true,
+                }),
+            ])
+        ).start();
+    };
+
+    useEffect(() => {
+        if (messages.length > 0) {
+            setTimeout(() => {
+                flatListRef.current?.scrollToEnd({ animated: true });
+            }, 100);
+        }
+    }, [messages]);
+
     useEffect(() => {
         if (isThinking) {
-            Animated.loop(
-                Animated.sequence([
-                    Animated.timing(thinkingAnimation, {
-                        toValue: 1,
-                        duration: 600,
-                        useNativeDriver: true,
-                    }),
-                    Animated.timing(thinkingAnimation, {
-                        toValue: 0,
-                        duration: 600,
-                        useNativeDriver: true,
-                    }),
-                ])
-            ).start();
+            startThinkingAnimation();
         } else {
+            thinkingAnimation.stopAnimation();
             thinkingAnimation.setValue(0);
         }
     }, [isThinking]);
+
+    const handleInputChange = (text) => {
+        setInput(text);
+        setTimeout(() => {
+            flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+    };
 
     const handleSend = async () => {
         if (input.trim() === "") return;
@@ -92,37 +127,59 @@ export default function ChatScreen() {
         );
     };
 
-    const renderMessage = ({ item }) => (
-        <View
-            style={[
-                styles.messageBubble,
-                item.sender === "user" ? styles.userBubble : styles.aiBubble,
-            ]}>
-            <Text
-                style={[
-                    styles.messageText,
-                    {
-                        color:
-                            item.sender === "user"
-                                ? colors.background
-                                : colors.text,
-                    },
-                ]}>
-                {item.text}
-            </Text>
-            {item.sender === "ai" && (
-                <TouchableOpacity
-                    onPress={() => handleFavoriteToggle(item)}
-                    style={styles.favoriteButton}>
-                    <Ionicons
-                        name={item.isFavorite ? "heart" : "heart-outline"}
-                        size={20}
-                        color={colors.primary}
-                    />
-                </TouchableOpacity>
-            )}
-        </View>
-    );
+    const renderMessage = ({ item, index }) => {
+        const isLastMessage = index === messages.length - 1;
+
+        return (
+            <View>
+                <View
+                    style={[
+                        styles.messageBubble,
+                        item.sender === "user"
+                            ? styles.userBubble
+                            : styles.aiBubble,
+                    ]}>
+                    <Text
+                        style={[
+                            styles.messageText,
+                            {
+                                color:
+                                    item.sender === "user"
+                                        ? colors.background
+                                        : colors.text,
+                            },
+                        ]}>
+                        {item.text}
+                    </Text>
+                    {item.sender === "ai" && (
+                        <TouchableOpacity
+                            onPress={() => handleFavoriteToggle(item)}
+                            style={styles.favoriteButton}>
+                            <Ionicons
+                                name={
+                                    item.isFavorite ? "heart" : "heart-outline"
+                                }
+                                size={20}
+                                color={colors.primary}
+                            />
+                        </TouchableOpacity>
+                    )}
+                </View>
+                {isLastMessage && isThinking && (
+                    <Animated.View
+                        style={[
+                            styles.thinkingContainer,
+                            { opacity: thinkingAnimation },
+                        ]}>
+                        <Text style={styles.thinkingText}>
+                            AI is thinking...
+                        </Text>
+                    </Animated.View>
+                )}
+            </View>
+        );
+    };
+
 
     return (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -133,92 +190,69 @@ export default function ChatScreen() {
                     { backgroundColor: colors.background },
                 ]}
                 keyboardVerticalOffset={Platform.OS === "ios" ? 70 : 0}>
-                <FlatList
-                    ref={flatListRef}
-                    data={messages}
-                    renderItem={renderMessage}
-                    keyExtractor={(item) => item.id.toString()}
-                    contentContainerStyle={[
-                        styles.messageList,
-                        { paddingBottom: insets.bottom + 60 },
-                    ]}
-                />
-                {isThinking && (
-                    <Animated.View
-                        style={[
-                            styles.thinkingContainer,
-                            { opacity: thinkingAnimation },
-                        ]}>
-                        <Text style={styles.thinkingText}>AI is thinking</Text>
-                        <View style={styles.dotsContainer}>
-                            <Animated.Text
-                                style={[
-                                    styles.dot,
-                                    { opacity: thinkingAnimation },
-                                ]}>
-                                .
-                            </Animated.Text>
-                            <Animated.Text
-                                style={[
-                                    styles.dot,
-                                    { opacity: thinkingAnimation },
-                                ]}>
-                                .
-                            </Animated.Text>
-                            <Animated.Text
-                                style={[
-                                    styles.dot,
-                                    { opacity: thinkingAnimation },
-                                ]}>
-                                .
-                            </Animated.Text>
-                        </View>
-                    </Animated.View>
-                )}
-                <View
-                    style={[
-                        styles.inputContainer,
-                        { paddingBottom: insets.bottom },
-                    ]}>
-                    <TouchableOpacity
-                        onPress={() => setShowToneSelector(!showToneSelector)}
-                        style={styles.toneButton}>
-                        <Ionicons
-                            name="options-outline"
-                            size={24}
-                            color={colors.primary}
-                        />
-                    </TouchableOpacity>
-                    <TextInput
-                        style={[
-                            styles.input,
-                            { color: colors.text, borderColor: colors.border },
+                <View {...panResponder.panHandlers} style={styles.container}>
+                    <FlatList
+                        ref={flatListRef}
+                        data={messages}
+                        renderItem={renderMessage}
+                        keyExtractor={(item) => item.id.toString()}
+                        contentContainerStyle={[
+                            styles.messageList,
+                            { paddingBottom: insets.bottom + 60 },
                         ]}
-                        value={input}
-                        onChangeText={setInput}
-                        placeholder="Type a message..."
-                        placeholderTextColor={colors.placeholder}
+                        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+                        onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
                     />
-                    <TouchableOpacity
-                        onPress={handleSend}
-                        style={styles.sendButton}>
-                        <Ionicons
-                            name="send"
-                            size={24}
-                            color={colors.primary}
+                    <View
+                        style={[
+                            styles.inputContainer,
+                            { paddingBottom: insets.bottom },
+                        ]}>
+                        <TouchableOpacity
+                            onPress={() =>
+                                setShowToneSelector(!showToneSelector)
+                            }
+                            style={styles.toneButton}>
+                            <Ionicons
+                                name="options-outline"
+                                size={24}
+                                color={colors.primary}
+                            />
+                        </TouchableOpacity>
+                        <TextInput
+                            style={[
+                                styles.input,
+                                {
+                                    color: colors.text,
+                                    borderColor: colors.border,
+                                },
+                            ]}
+                            value={input}
+                            onChangeText={handleInputChange}
+                            placeholder="Type a message..."
+                            placeholderTextColor={colors.placeholder}
                         />
-                    </TouchableOpacity>
+                        <TouchableOpacity
+                            onPress={handleSend}
+                            style={styles.sendButton}>
+                            <Ionicons
+                                name="send"
+                                size={24}
+                                color={colors.primary}
+                            />
+                        </TouchableOpacity>
+                    </View>
+                    {showToneSelector && (
+                        <ToneSelector
+                            selectedTone={tone}
+                            onSelectTone={(newTone) => {
+                                setTone(newTone);
+                                setShowToneSelector(false);
+                            }}
+                            onClose={() => setShowToneSelector(false)}
+                        />
+                    )}
                 </View>
-                {showToneSelector && (
-                    <ToneSelector
-                        selectedTone={tone}
-                        onSelectTone={(newTone) => {
-                            setTone(newTone);
-                            setShowToneSelector(false);
-                        }}
-                        onClose={() => setShowToneSelector(false)}
-                    />
-                )}
             </KeyboardAvoidingView>
         </TouchableWithoutFeedback>
     );
@@ -242,7 +276,7 @@ const styles = StyleSheet.create({
         backgroundColor: "#FFFFFF",
     },
     aiBubble: {
-        alignItems : "flex-end",
+        alignItems: "flex-end",
         alignSelf: "flex-start",
         backgroundColor: "#333333",
     },
@@ -276,26 +310,17 @@ const styles = StyleSheet.create({
         right: 5,
     },
     thinkingContainer: {
+        alignSelf: "flex-start",
         flexDirection: "row",
         alignItems: "center",
-        position: "absolute",
-        bottom: 70,
-        left: 20,
         backgroundColor: "rgba(0, 0, 0, 0.7)",
         padding: 10,
         borderRadius: 20,
+        marginTop: 10,
+        marginLeft: 10,
     },
     thinkingText: {
         color: "#FFFFFF",
         fontStyle: "italic",
-    },
-    dotsContainer: {
-        flexDirection: "row",
-        marginLeft: 5,
-    },
-    dot: {
-        color: "#FFFFFF",
-        fontSize: 20,
-        marginLeft: 2,
     },
 });

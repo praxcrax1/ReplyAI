@@ -1,45 +1,69 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import {
+    View,
+    Text,
+    TouchableOpacity,
+    StyleSheet,
+    FlatList,
+} from "react-native";
 import { useTheme } from "../styles/theme";
+import { Ionicons } from "@expo/vector-icons";
 
 const tones = ["playful", "romantic", "sarcastic", "mysterious"];
 
-export default function ToneSelector({ selectedTone, onSelectTone }) {
+export default function ToneSelector({ selectedTone, onSelectTone, onClose }) {
     const { colors } = useTheme();
+
+    const renderItem = ({ item }) => (
+        <TouchableOpacity
+            style={[
+                styles.toneButton,
+                {
+                    backgroundColor:
+                        selectedTone === item ? colors.primary : "transparent",
+                },
+            ]}
+            onPress={() => onSelectTone(item)}>
+            <Text
+                style={[
+                    styles.toneText,
+                    {
+                        color:
+                            selectedTone === item
+                                ? colors.background
+                                : colors.primary,
+                    },
+                ]}>
+                {item}
+            </Text>
+        </TouchableOpacity>
+    );
 
     return (
         <View style={styles.container}>
-            <Text style={[styles.label, { color: colors.text }]}>
-                Select Tone:
-            </Text>
-            <View style={styles.toneContainer}>
-                {tones.map((tone) => (
-                    <TouchableOpacity
-                        key={tone}
-                        style={[
-                            styles.toneButton,
-                            {
-                                backgroundColor:
-                                    selectedTone === tone
-                                        ? colors.primary
-                                        : colors.background,
-                            },
-                        ]}
-                        onPress={() => onSelectTone(tone)}>
-                        <Text
-                            style={[
-                                styles.toneText,
-                                {
-                                    color:
-                                        selectedTone === tone
-                                            ? colors.background
-                                            : colors.text,
-                                },
-                            ]}>
-                            {tone}
-                        </Text>
+            <View
+                style={[
+                    styles.dropdown,
+                    { backgroundColor: `${colors.background}E6` },
+                ]}>
+                <View style={styles.header}>
+                    <Text style={[styles.title, { color: colors.text }]}>
+                        Select Tone
+                    </Text>
+                    <TouchableOpacity onPress={onClose}>
+                        <Ionicons
+                            name="close"
+                            size={24}
+                            color={colors.primary}
+                        />
                     </TouchableOpacity>
-                ))}
+                </View>
+                <FlatList
+                    data={tones}
+                    renderItem={renderItem}
+                    keyExtractor={(item) => item}
+                    contentContainerStyle={styles.listContainer}
+                />
             </View>
         </View>
     );
@@ -47,24 +71,38 @@ export default function ToneSelector({ selectedTone, onSelectTone }) {
 
 const styles = StyleSheet.create({
     container: {
-        marginBottom: 20,
+        position: "absolute",
+        bottom: 100,
+        left: 0,
+        right: 0,
+        justifyContent: "flex-end",
     },
-    label: {
-        fontSize: 16,
-        marginBottom: 10,
+    dropdown: {
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        overflow: "hidden",
     },
-    toneContainer: {
+    header: {
         flexDirection: "row",
-        flexWrap: "wrap",
+        justifyContent: "space-between",
+        alignItems: "center",
+        padding: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: "#333333",
+    },
+    title: {
+        fontSize: 18,
+        fontWeight: "bold",
+    },
+    listContainer: {
+        paddingVertical: 10,
     },
     toneButton: {
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-        borderRadius: 15,
-        marginRight: 10,
-        marginBottom: 10,
+        paddingVertical: 12,
+        paddingHorizontal: 20,
     },
     toneText: {
-        fontSize: 14,
+        fontSize: 16,
+        fontWeight: "500",
     },
 });

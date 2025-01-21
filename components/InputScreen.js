@@ -1,20 +1,32 @@
 import React, { useState } from "react";
-import { View, TextInput, Button, StyleSheet } from "react-native";
+import {
+    View,
+    TextInput,
+    Button,
+    StyleSheet,
+    ActivityIndicator,
+    TouchableOpacity,
+    Text,
+} from "react-native";
 import { useTheme } from "../styles/theme";
-import { generateResponse } from "../utils/geminiApi";
-import { saveToFavorites } from "../utils/storage";
 import ToneSelector from "./ToneSelector";
 import ResponsePreview from "./ResponsePreview";
+import { generateResponse } from "../utils/geminiApi";
+import { saveToFavorites } from "../utils/storage";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function InputScreen({ navigation }) {
     const [input, setInput] = useState("");
     const [tone, setTone] = useState("playful");
     const [response, setResponse] = useState("");
+    const [loading, setLoading] = useState(false);
     const { colors } = useTheme();
 
     const handleGenerateResponse = async () => {
+        setLoading(true);
         const generatedResponse = await generateResponse(input, tone);
         setResponse(generatedResponse);
+        setLoading(false);
     };
 
     const handleSaveToFavorites = () => {
@@ -33,26 +45,28 @@ export default function InputScreen({ navigation }) {
                 onChangeText={setInput}
                 placeholder="Enter your message..."
                 placeholderTextColor={colors.placeholder}
+                multiline={true}
             />
             <ToneSelector selectedTone={tone} onSelectTone={setTone} />
-            <Button
-                title="Generate Response"
+            <TouchableOpacity
+                style={[
+                    styles.generateButton,
+                    { backgroundColor: colors.primary },
+                ]}
                 onPress={handleGenerateResponse}
-                color={colors.primary}
+                disabled={loading}>
+                {loading ? (
+                    <ActivityIndicator color={colors.background} />
+                ) : (
+                    <Text style={styles.generateButtonText}>
+                        Generate Response
+                    </Text>
+                )}
+            </TouchableOpacity>
+            <ResponsePreview
+                response={response}
+                onSaveToFavorites={handleSaveToFavorites}
             />
-            <ResponsePreview response={response} />
-            <View style={styles.buttonContainer}>
-                <Button
-                    title="Save to Favorites"
-                    onPress={handleSaveToFavorites}
-                    color={colors.secondary}
-                />
-                <Button
-                    title="View Favorites"
-                    onPress={() => navigation.navigate("Favorites")}
-                    color={colors.secondary}
-                />
-            </View>
         </View>
     );
 }
@@ -63,14 +77,23 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     input: {
-        height: 40,
+        height: 100,
         borderWidth: 1,
-        marginBottom: 10,
-        paddingHorizontal: 10,
+        borderRadius: 10,
+        marginBottom: 20,
+        paddingHorizontal: 15,
+        paddingTop: 15,
+        textAlignVertical: "top",
     },
-    buttonContainer: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        marginTop: 10,
+    generateButton: {
+        paddingVertical: 12,
+        borderRadius: 25,
+        alignItems: "center",
+        marginBottom: 20,
+    },
+    generateButtonText: {
+        color: "#FFFFFF",
+        fontSize: 16,
+        fontWeight: "bold",
     },
 });

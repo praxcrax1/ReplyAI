@@ -1,30 +1,57 @@
 import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
-import { createStackNavigator } from "@react-navigation/stack";
+import { createDrawerNavigator } from "@react-navigation/drawer";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import InputScreen from "./components/InputScreen";
+import { StatusBar } from "expo-status-bar";
+import ChatScreen from "./components/ChatScreen";
 import FavoritesScreen from "./components/FavoritesScreen";
+import ProfileScreen from "./components/ProfileScreen";
+import CustomDrawerContent from "./components/CustomDrawerContent";
 import { ThemeProvider } from "./styles/theme";
 
-const Stack = createStackNavigator();
+const Drawer = createDrawerNavigator();
 
 export default function App() {
     return (
         <ThemeProvider>
             <SafeAreaProvider>
+                <StatusBar style="light" />
                 <NavigationContainer>
-                    <Stack.Navigator initialRouteName="Input">
-                        <Stack.Screen
-                            name="Input"
-                            component={InputScreen}
+                    <Drawer.Navigator
+                        initialRouteName="Chat"
+                        drawerContent={(props) => (
+                            <CustomDrawerContent {...props} />
+                        )}
+                        screenOptions={{
+                            headerShown: true,
+                            headerStyle: {
+                                backgroundColor: "#000000",
+                            },
+                            headerTintColor: "#fff",
+                            headerTitleStyle: {
+                                fontWeight: "bold",
+                            },
+                            drawerStyle: {
+                                backgroundColor: "#000000",
+                            },
+                            drawerLabelStyle: {
+                                color: "#FFFFFF",
+                            },
+                        }}>
+                        <Drawer.Screen
+                            name="Chat"
+                            component={ChatScreen}
                             options={{ title: "Reply AI" }}
                         />
-                        <Stack.Screen
+                        <Drawer.Screen
                             name="Favorites"
                             component={FavoritesScreen}
-                            options={{ title: "Favorites" }}
                         />
-                    </Stack.Navigator>
+                        <Drawer.Screen
+                            name="Profile"
+                            component={ProfileScreen}
+                        />
+                    </Drawer.Navigator>
                 </NavigationContainer>
             </SafeAreaProvider>
         </ThemeProvider>

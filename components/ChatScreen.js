@@ -203,6 +203,16 @@ export default function ChatScreen() {
                         onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
                         onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
                     />
+                    {showToneSelector && (
+                        <ToneSelector
+                            selectedTone={tone}
+                            onSelectTone={(newTone) => {
+                                setTone(newTone);
+                                setShowToneSelector(false);
+                            }}
+                            onClose={() => setShowToneSelector(false)}
+                        />
+                    )}
                     <View
                         style={[
                             styles.inputContainer,
@@ -242,16 +252,6 @@ export default function ChatScreen() {
                             />
                         </TouchableOpacity>
                     </View>
-                    {showToneSelector && (
-                        <ToneSelector
-                            selectedTone={tone}
-                            onSelectTone={(newTone) => {
-                                setTone(newTone);
-                                setShowToneSelector(false);
-                            }}
-                            onClose={() => setShowToneSelector(false)}
-                        />
-                    )}
                 </View>
             </KeyboardAvoidingView>
         </TouchableWithoutFeedback>

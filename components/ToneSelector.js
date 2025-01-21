@@ -71,11 +71,11 @@ export default function ToneSelector({ selectedTone, onSelectTone, onClose }) {
 
 const styles = StyleSheet.create({
     container: {
-        position: "absolute",
-        bottom: 100,
-        left: 0,
-        right: 0,
-        justifyContent: "flex-end",
+        // position: "absolute",
+        // bottom: 20,
+        // left: 0,
+        // right: 0,
+        // justifyContent: "flex-end",
     },
     dropdown: {
         borderTopLeftRadius: 20,

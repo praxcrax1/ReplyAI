@@ -1,6 +1,47 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+const CHATS_KEY = "chats";
 const FAVORITES_KEY = "favorites";
+
+export async function saveChat(chatId, messages) {
+    try {
+        const chats = await getChats();
+        chats[chatId] = messages;
+        await AsyncStorage.setItem(CHATS_KEY, JSON.stringify(chats));
+    } catch (error) {
+        console.error("Error saving chat:", error);
+    }
+}
+
+export async function getChats() {
+    try {
+        const chats = await AsyncStorage.getItem(CHATS_KEY);
+        return chats ? JSON.parse(chats) : {};
+    } catch (error) {
+        console.error("Error getting chats:", error);
+        return {};
+    }
+}
+
+export async function getChatMessages(chatId) {
+    try {
+        const chats = await getChats();
+        return chats[chatId] || [];
+    } catch (error) {
+        console.error("Error getting chat messages:", error);
+        return [];
+    }
+}
+
+export async function deleteChat(chatId) {
+    try {
+        const chats = await getChats();
+        delete chats[chatId];
+        await AsyncStorage.setItem(CHATS_KEY, JSON.stringify(chats));
+    } catch (error) {
+        console.error("Error deleting chat:", error);
+    }
+}
 
 export async function saveToFavorites(response) {
     try {
@@ -34,15 +75,5 @@ export async function getFavorites() {
     } catch (error) {
         console.error("Error getting favorites:", error);
         return [];
-    }
-}
-
-export async function isFavorite(response) {
-    try {
-        const favorites = await getFavorites();
-        return favorites.includes(response);
-    } catch (error) {
-        console.error("Error checking if favorite:", error);
-        return false;
     }
 }

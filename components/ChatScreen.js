@@ -19,6 +19,7 @@ import { saveToFavorites, removeFavorite } from "../utils/storage";
 import { Ionicons } from "@expo/vector-icons";
 import ToneSelector from "./ToneSelector";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Markdown from "react-native-markdown-display";
 
 export default function ChatScreen() {
     const [messages, setMessages] = useState([]);
@@ -139,18 +140,30 @@ export default function ChatScreen() {
                             ? styles.userBubble
                             : styles.aiBubble,
                     ]}>
-                    <Text
-                        style={[
-                            styles.messageText,
-                            {
-                                color:
-                                    item.sender === "user"
-                                        ? colors.background
-                                        : colors.text,
-                            },
-                        ]}>
-                        {item.text}
-                    </Text>
+                    {item.sender === "user" ? (
+                        <Text
+                            style={[
+                                styles.messageText,
+                                {
+                                    color: colors.background,
+                                },
+                            ]}>
+                            {item.text}
+                        </Text>
+                    ) : (
+                        <Markdown
+                            style={{
+                                body: {
+                                    color: colors.text,
+                                    fontSize: 16,
+                                },
+                                link: {
+                                    color: colors.primary,
+                                },
+                            }}>
+                            {item.text}
+                        </Markdown>
+                    )}
                     {item.sender === "ai" && (
                         <TouchableOpacity
                             onPress={() => handleFavoriteToggle(item)}

@@ -25,19 +25,6 @@ export default function CustomDrawerContent(props) {
                         Chat
                     </Text>
                 </TouchableOpacity>
-                <TouchableOpacity
-                    style={styles.drawerItem}
-                    onPress={() => props.navigation.navigate("Favorites")}>
-                    <Ionicons
-                        name="heart-outline"
-                        size={24}
-                        color={colors.text}
-                    />
-                    <Text
-                        style={[styles.drawerItemText, { color: colors.text }]}>
-                        Favorites
-                    </Text>
-                </TouchableOpacity>
             </View>
             <View style={styles.bottomContent}>
                 <TouchableOpacity

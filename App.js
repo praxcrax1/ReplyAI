@@ -4,7 +4,6 @@ import { createDrawerNavigator } from "@react-navigation/drawer";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import ChatScreen from "./components/ChatScreen";
-import FavoritesScreen from "./components/FavoritesScreen";
 import ProfileScreen from "./components/ProfileScreen";
 import CustomDrawerContent from "./components/CustomDrawerContent";
 import { ThemeProvider } from "./styles/theme";
@@ -42,10 +41,6 @@ export default function App() {
                             name="Chat"
                             component={ChatScreen}
                             options={{ title: "Reply AI" }}
-                        />
-                        <Drawer.Screen
-                            name="Favorites"
-                            component={FavoritesScreen}
                         />
                         <Drawer.Screen
                             name="Profile"

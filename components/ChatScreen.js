@@ -1,273 +1,237 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
     View,
-    TextInput,
-    StyleSheet,
-    FlatList,
-    TouchableOpacity,
     Text,
-    KeyboardAvoidingView,
-    Platform,
+    TextInput,
+    TouchableOpacity,
+    StyleSheet,
+    ScrollView,
+    Dimensions,
     Animated,
     Keyboard,
+    Platform,
+    KeyboardAvoidingView,
     TouchableWithoutFeedback,
-    PanResponder,
 } from "react-native";
-import { useTheme } from "../styles/theme";
-import { generateResponse } from "../utils/geminiApi";
-import { saveToFavorites, removeFavorite } from "../utils/storage";
+import { Picker } from "@react-native-picker/picker";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import ToneSelector from "./ToneSelector";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTheme } from "../styles/theme";
 import Markdown from "react-native-markdown-display";
+import { endpoint } from "../index.json";
+import * as Clipboard from "expo-clipboard";
+
+const TONES = ["flirty", "playful", "professional", "friendly", "sarcastic", "cheeky"];
 
 export default function ChatScreen() {
-    const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
-    const [tone, setTone] = useState("playful");
-    const [showToneSelector, setShowToneSelector] = useState(false);
+    const [tone, setTone] = useState("flirty");
+    const [aiResponse, setAiResponse] = useState("");
     const [isThinking, setIsThinking] = useState(false);
     const { colors } = useTheme();
-    const flatListRef = useRef(null);
-    const insets = useSafeAreaInsets();
-    const thinkingAnimation = useRef(new Animated.Value(0)).current;
+    const scrollViewRef = useRef(null);
+    const [keyboardHeight, setKeyboardHeight] = useState(0);
 
-    const panResponder = useRef(
-        PanResponder.create({
-            onStartShouldSetPanResponder: () => true,
-            onMoveShouldSetPanResponder: (_, gestureState) => {
-                return Math.abs(gestureState.dy) > Math.abs(gestureState.dx);
-            },
-            onPanResponderMove: (_, gestureState) => {
-                if (gestureState.dy > 10) {
-                    Keyboard.dismiss();
-                }
-            },
-        })
-    ).current;
-
-    const startThinkingAnimation = () => {
-        Animated.loop(
-            Animated.sequence([
-                Animated.timing(thinkingAnimation, {
-                    toValue: 1,
-                    duration: 600,
-                    useNativeDriver: true,
-                }),
-                Animated.timing(thinkingAnimation, {
-                    toValue: 0.3,
-                    duration: 600,
-                    useNativeDriver: true,
-                }),
-            ])
-        ).start();
-    };
-
-    useEffect(() => {
-        if (messages.length > 0) {
-            setTimeout(() => {
-                flatListRef.current?.scrollToEnd({ animated: true });
-            }, 100);
-        }
-    }, [messages]);
+    const loaderValue = new Animated.Value(0);
 
     useEffect(() => {
         if (isThinking) {
-            startThinkingAnimation();
+            Animated.loop(
+                Animated.sequence([
+                    Animated.timing(loaderValue, {
+                        toValue: 1,
+                        duration: 1000,
+                        useNativeDriver: false,
+                    }),
+                    Animated.timing(loaderValue, {
+                        toValue: 0,
+                        duration: 1000,
+                        useNativeDriver: false,
+                    }),
+                ])
+            ).start();
         } else {
-            thinkingAnimation.stopAnimation();
-            thinkingAnimation.setValue(0);
+            loaderValue.setValue(0);
         }
     }, [isThinking]);
-
-    const handleInputChange = (text) => {
-        setInput(text);
-        setTimeout(() => {
-            flatListRef.current?.scrollToEnd({ animated: true });
-        }, 100);
-    };
 
     const handleSend = async () => {
         if (input.trim() === "") return;
 
-        const userMessage = { id: Date.now(), text: input, sender: "user" };
-        setMessages((prevMessages) => [...prevMessages, userMessage]);
-        setInput("");
         setIsThinking(true);
+        setAiResponse("");
 
         try {
-            const aiResponse = await generateResponse(input, tone);
-            const aiMessage = {
-                id: Date.now() + 1,
-                text: aiResponse,
-                sender: "ai",
-                isFavorite: false,
-            };
-            setMessages((prevMessages) => [...prevMessages, aiMessage]);
+            const response = await fetch(`${endpoint}/api/ai/generate`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ input, tone }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            setAiResponse(data.response);
         } catch (error) {
             console.error("Error generating response:", error);
+            setAiResponse(
+                "Sorry, an error occurred while generating the response."
+            );
         } finally {
             setIsThinking(false);
         }
-
-        flatListRef.current?.scrollToEnd({ animated: true });
     };
 
-    const handleFavoriteToggle = async (message) => {
-        if (message.isFavorite) {
-            await removeFavorite(message.text);
-        } else {
-            await saveToFavorites(message.text);
-        }
-        setMessages((prevMessages) =>
-            prevMessages.map((msg) =>
-                msg.id === message.id
-                    ? { ...msg, isFavorite: !msg.isFavorite }
-                    : msg
-            )
-        );
-    };
+    const renderSkeletonLoader = () => {
+        const pastelColors = [
+            "#FFB3B3", // Soft Red
+            "#FFD6A5", // Soft Orange
+            "#FFFACD", // Soft Yellow
+            "#C8FACC", // Soft Green
+            "#ADD8FF", // Soft Blue
+            "#D7BCE8", // Soft Indigo
+            "#E8B3E8", // Soft Violet
+        ];
 
-    const renderMessage = ({ item, index }) => {
-        const isLastMessage = index === messages.length - 1;
+        const colorInterpolation = loaderValue.interpolate({
+            inputRange: pastelColors.map(
+                (_, index) => index / (pastelColors.length - 1)
+            ),
+            outputRange: pastelColors,
+        });
 
         return (
-            <View>
-                <View
-                    style={[
-                        styles.messageBubble,
-                        item.sender === "user"
-                            ? styles.userBubble
-                            : styles.aiBubble,
-                    ]}>
-                    {item.sender === "user" ? (
-                        <Text
-                            style={[
-                                styles.messageText,
-                                {
-                                    color: colors.background,
-                                },
-                            ]}>
-                            {item.text}
-                        </Text>
-                    ) : (
-                        <Markdown
-                            style={{
-                                body: {
-                                    color: colors.text,
-                                    fontSize: 16,
-                                },
-                                link: {
-                                    color: colors.primary,
-                                },
-                            }}>
-                            {item.text}
-                        </Markdown>
-                    )}
-                    {item.sender === "ai" && (
-                        <TouchableOpacity
-                            onPress={() => handleFavoriteToggle(item)}
-                            style={styles.favoriteButton}>
-                            <Ionicons
-                                name={
-                                    item.isFavorite ? "heart" : "heart-outline"
-                                }
-                                size={20}
-                                color={colors.primary}
-                            />
-                        </TouchableOpacity>
-                    )}
-                </View>
-                {isLastMessage && isThinking && (
+            <View style={styles.skeletonContainer}>
+                {[...Array(3)].map((_, index) => (
                     <Animated.View
+                        key={index}
                         style={[
-                            styles.thinkingContainer,
-                            { opacity: thinkingAnimation },
-                        ]}>
-                        <Text style={styles.thinkingText}>
-                            AI is thinking...
-                        </Text>
-                    </Animated.View>
-                )}
+                            styles.skeletonLine,
+                            {
+                                width: `${85 - index * 10}%`,
+                                backgroundColor: colorInterpolation,
+                            },
+                        ]}
+                    />
+                ))}
             </View>
         );
     };
 
 
+
+    const copyToClipboard = async () => {
+        await Clipboard.setStringAsync(aiResponse);
+    };
+
     return (
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <SafeAreaView
+            style={[styles.container, { backgroundColor: colors.background }]}>
             <KeyboardAvoidingView
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
-                style={[
-                    styles.container,
-                    { backgroundColor: colors.background },
-                ]}
-                keyboardVerticalOffset={Platform.OS === "ios" ? 70 : 0}>
-                <View {...panResponder.panHandlers} style={styles.container}>
-                    <FlatList
-                        ref={flatListRef}
-                        data={messages}
-                        renderItem={renderMessage}
-                        keyExtractor={(item) => item.id.toString()}
-                        contentContainerStyle={[
-                            styles.messageList,
-                            { paddingBottom: insets.bottom + 60 },
-                        ]}
-                        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-                        onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
-                    />
-                    {showToneSelector && (
-                        <ToneSelector
-                            selectedTone={tone}
-                            onSelectTone={(newTone) => {
-                                setTone(newTone);
-                                setShowToneSelector(false);
-                            }}
-                            onClose={() => setShowToneSelector(false)}
-                        />
-                    )}
+                style={{ flex: 1 }}
+                keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}>
+                <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                    <ScrollView
+                        ref={scrollViewRef}
+                        contentContainerStyle={styles.scrollContent}
+                        keyboardShouldPersistTaps="handled">
+                        <View style={styles.responseContainer}>
+                            {isThinking ? (
+                                renderSkeletonLoader()
+                            ) : aiResponse ? (
+                                <View style={styles.aiResponseWrapper}>
+                                    <Markdown style={markdownStyles(colors)}>
+                                        {aiResponse}
+                                    </Markdown>
+                                    <TouchableOpacity
+                                        onPress={copyToClipboard}
+                                        style={styles.copyButton}>
+                                        <Ionicons
+                                            name="copy-outline"
+                                            size={24}
+                                            color={colors.primary}
+                                        />
+                                    </TouchableOpacity>
+                                </View>
+                            ) : (
+                                <Text
+                                    style={[
+                                        styles.placeholderText,
+                                        { color: colors.text },
+                                    ]}>
+                                    Enter a message and I'll respond here!
+                                </Text>
+                            )}
+                        </View>
+                    </ScrollView>
+                </TouchableWithoutFeedback>
+                <View
+                    style={[
+                        styles.inputContainer,
+                        {
+                            paddingBottom:
+                                keyboardHeight > 0 ? keyboardHeight : 16,
+                        },
+                    ]}>
                     <View
                         style={[
-                            styles.inputContainer,
-                            { paddingBottom: insets.bottom },
+                            styles.pickerContainer,
+                            { backgroundColor: colors.secondary },
                         ]}>
-                        <TouchableOpacity
-                            onPress={() =>
-                                setShowToneSelector(!showToneSelector)
-                            }
-                            style={styles.toneButton}>
-                            <Ionicons
-                                name="options-outline"
-                                size={24}
-                                color={colors.primary}
-                            />
-                        </TouchableOpacity>
+                        <Picker
+                            selectedValue={tone}
+                            onValueChange={(itemValue) => setTone(itemValue)}
+                            style={[styles.picker, { color: colors.text }]}
+                            dropdownIconColor={colors.text}
+                            itemStyle={{ height: 120, fontSize: 14 }}>
+                            {TONES.map((t) => (
+                                <Picker.Item
+                                    key={t}
+                                    label={
+                                        t.charAt(0).toUpperCase() + t.slice(1)
+                                    }
+                                    value={t}
+                                    color={colors.text}
+                                />
+                            ))}
+                        </Picker>
+                    </View>
+                    <View style={styles.inputWrapper}>
                         <TextInput
                             style={[
                                 styles.input,
                                 {
                                     color: colors.text,
-                                    borderColor: colors.border,
+                                    backgroundColor: colors.secondary,
                                 },
                             ]}
                             value={input}
-                            onChangeText={handleInputChange}
-                            placeholder="Type a message..."
+                            onChangeText={setInput}
+                            placeholder="Type your message here..."
                             placeholderTextColor={colors.placeholder}
+                            multiline
                         />
                         <TouchableOpacity
-                            onPress={handleSend}
-                            style={styles.sendButton}>
+                            style={[
+                                styles.sendButton,
+                                { backgroundColor: colors.primary },
+                            ]}
+                            onPress={handleSend}>
                             <Ionicons
                                 name="send"
                                 size={24}
-                                color={colors.primary}
+                                color={colors.background}
                             />
                         </TouchableOpacity>
                     </View>
                 </View>
             </KeyboardAvoidingView>
-        </TouchableWithoutFeedback>
+        </SafeAreaView>
     );
 }
 
@@ -275,65 +239,111 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-    messageList: {
-        paddingHorizontal: 15,
+    keyboardAvoidingView: {
+        flex: 1,
     },
-    messageBubble: {
-        maxWidth: "80%",
-        padding: 12,
-        borderRadius: 20,
-        marginVertical: 5,
+    scrollContent: {
+        width: "100%",
+        margin: 0,
+        margin : "auto",
+        justifyContent: "center",
     },
-    userBubble: {
-        alignSelf: "flex-end",
-        backgroundColor: "#FFFFFF",
+    responseContainer: {
+        padding: 16,
+        justifyContent: "center",
     },
-    aiBubble: {
-        alignItems: "flex-end",
-        alignSelf: "flex-start",
-        backgroundColor: "#333333",
-    },
-    messageText: {
-        fontSize: 16,
+    aiResponseWrapper: {
+        backgroundColor: "rgba(255, 255, 255, 0.1)",
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 16,
     },
     inputContainer: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingHorizontal: 15,
-        paddingTop: 13.5,
+        padding: 16,
         borderTopWidth: 1,
         borderTopColor: "#333333",
-        backgroundColor: "#000000",
+    },
+    pickerContainer: { 
+        height: 100,
+        backgroundColor: "none",
+        borderRadius: 12,
+        marginBottom: 12,
+    },
+    inputWrapper: {
+        flexDirection: "row",
+        alignItems: "flex-end",
     },
     input: {
         flex: 1,
-        height: 40,
-        borderWidth: 1,
-        borderRadius: 20,
-        paddingHorizontal: 15,
-        marginHorizontal: 10,
-    },
-    toneButton: {
-        padding: 5,
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        paddingTop: 12,
+        paddingBottom: 12,
+        fontSize: 16,
+        minHeight: 50,
+        maxHeight: 120,
     },
     sendButton: {
-        padding: 5,
-    },
-    favoriteButton: {
-        right: 5,
-    },
-    thinkingContainer: {
-        alignSelf: "flex-start",
-        flexDirection: "row",
+        marginLeft: 8,
+        padding: 12,
+        borderRadius: 24,
         alignItems: "center",
-        backgroundColor: "rgba(0, 0, 0, 0.7)",
-        padding: 10,
-        borderRadius: 20,
-        marginTop: 10,
-        marginLeft: 10,
+        justifyContent: "center",
     },
-    thinkingText: {
-        color: "#FFFFFF",
+    placeholderText: {
+        fontSize: 16,
+        textAlign: "center",
+    },
+    skeletonContainer: {
+        alignItems: "flex-start",
+    },
+    skeletonLine: {
+        height: 20,
+        borderRadius: 4,
+        marginBottom: 8,
+    },
+    copyButton: {
+        alignSelf: "flex-end",
+        padding: 8,
+    },
+});
+
+const markdownStyles = (colors) => ({
+    body: {
+        color: colors.text,
+    },
+    heading1: {
+        fontSize: 34,
+        fontWeight: "bold",
+        marginBottom: 12,
+        color: colors.text,
+    },
+    heading2: {
+        fontSize: 28,
+        fontWeight: "bold",
+        marginBottom: 10,
+        color: colors.text,
+    },
+    heading3: {
+        fontSize: 22,
+        fontWeight: "bold",
+        marginBottom: 8,
+        color: colors.text,
+    },
+    paragraph: {
+        fontSize: 18,
+        fontWeight: "500",
+        marginBottom: 14,
+        lineHeight: 24,
+    },
+    link: {
+        color: colors.primary,
+        textDecorationLine: "underline",
+    },
+    blockquote: {
+        borderLeftWidth: 4,
+        borderLeftColor: colors.primary,
+        paddingLeft: 12,
         fontStyle: "italic",
     },
 });

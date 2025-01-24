@@ -173,8 +173,7 @@ export default function ChatScreen() {
                         ref={scrollViewRef}
                         contentContainerStyle={styles.scrollContent}
                         keyboardShouldPersistTaps="handled"
-                        onScrollBeginDrag={Keyboard.dismiss}
-                    >
+                        onScrollBeginDrag={Keyboard.dismiss}>
                         <View style={styles.responseContainer}>
                             <View
                                 style={[
@@ -185,10 +184,15 @@ export default function ChatScreen() {
                                     renderSkeletonLoader()
                                 ) : aiResponse ? (
                                     <>
-                                        <Markdown
-                                            style={markdownStyles(colors)}>
-                                            {aiResponse}
-                                        </Markdown>
+                                        <ScrollView
+                                            style={styles.aiScrollView}
+                                            indicatorStyle="white"
+                                            showsVerticalScrollIndicator={true}>
+                                            <Markdown
+                                                style={markdownStyles(colors)}>
+                                                {aiResponse}
+                                            </Markdown>
+                                        </ScrollView>
                                         <TouchableOpacity
                                             onPress={copyToClipboard}
                                             style={styles.copyButton}>
@@ -331,6 +335,9 @@ export default function ChatScreen() {
 }
 
 const styles = StyleSheet.create({
+    aiScrollView: {
+        flex: 1,
+    },
     container: {
         flex: 1,
     },
@@ -340,9 +347,6 @@ const styles = StyleSheet.create({
     scrollContent: {
         height: "100%",
         width: "100%",
-        margin: 0,
-        margin: "auto",
-        justifyContent: "center",
     },
     responseContainer: {
         height: "100%",
@@ -350,7 +354,7 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     aiResponseWrapper: {
-        overflow: "hidden",
+        overflow: "scroll",
         height: "100%",
         borderWidth: 1,
         borderRadius: 10,

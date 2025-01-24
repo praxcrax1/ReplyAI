@@ -85,7 +85,6 @@ export default function ChatScreen() {
 
         let imageBase64 = null;
         if (image) {
-            // Convert the image to a base64 string
             imageBase64 = await FileSystem.readAsStringAsync(image, {
                 encoding: FileSystem.EncodingType.Base64,
             });
@@ -99,7 +98,6 @@ export default function ChatScreen() {
                 },
                 body: JSON.stringify({ input, tone, imageBase64 }),
             });
-
             if (!response.ok) {
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
@@ -207,6 +205,7 @@ export default function ChatScreen() {
                         },
                     ]}>
                     <View style={[styles.pickerContainer]}>
+                        <Text style={[styles.space, { color: colors.text }]}></Text>
                         <Picker
                             selectedValue={tone}
                             onValueChange={(itemValue) => setTone(itemValue)}
@@ -224,6 +223,7 @@ export default function ChatScreen() {
                                 />
                             ))}
                         </Picker>
+                        <Text style={[styles.space, { color: colors.text }]}></Text>
                     </View>
                     <View style={styles.inputWrapper}>
                         {image && (
@@ -378,6 +378,9 @@ const styles = StyleSheet.create({
     },
     removeImageButton: {
         padding: 5,
+    },
+    space: {
+        alignSelf: "center",
     },
 });
 

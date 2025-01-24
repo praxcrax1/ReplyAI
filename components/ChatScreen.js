@@ -14,7 +14,6 @@ import {
     TouchableWithoutFeedback,
     Image,
 } from "react-native";
-import { Picker } from "@react-native-picker/picker";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../styles/theme";
@@ -62,7 +61,7 @@ export default function ChatScreen() {
         const { status } =
             await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status === "granted") {
-            let result = await ImagePicker.launchImageLibraryAsync({
+            const result = await ImagePicker.launchImageLibraryAsync({
                 mediaTypes: ImagePicker.MediaTypeOptions.Images,
                 allowsEditing: true,
                 aspect: [4, 3],
@@ -167,32 +166,39 @@ export default function ChatScreen() {
                         contentContainerStyle={styles.scrollContent}
                         keyboardShouldPersistTaps="handled">
                         <View style={styles.responseContainer}>
-                            {isThinking ? (
-                                renderSkeletonLoader()
-                            ) : aiResponse ? (
-                                <View style={styles.aiResponseWrapper}>
-                                    <Markdown style={markdownStyles(colors)}>
-                                        {aiResponse}
-                                    </Markdown>
-                                    <TouchableOpacity
-                                        onPress={copyToClipboard}
-                                        style={styles.copyButton}>
-                                        <Ionicons
-                                            name="copy-outline"
-                                            size={24}
-                                            color={colors.primary}
-                                        />
-                                    </TouchableOpacity>
-                                </View>
-                            ) : (
-                                <Text
-                                    style={[
-                                        styles.placeholderText,
-                                        { color: colors.text },
-                                    ]}>
-                                    Enter a message and I'll respond here!
-                                </Text>
-                            )}
+                            <View
+                                style={[
+                                    styles.aiResponseWrapper,
+                                    { borderColor: colors.border },
+                                ]}>
+                                {isThinking ? (
+                                    renderSkeletonLoader()
+                                ) : aiResponse ? (
+                                    <>
+                                        <Markdown
+                                            style={markdownStyles(colors)}>
+                                            {aiResponse}
+                                        </Markdown>
+                                        <TouchableOpacity
+                                            onPress={copyToClipboard}
+                                            style={styles.copyButton}>
+                                            <Ionicons
+                                                name="copy-outline"
+                                                size={24}
+                                                color={colors.primary}
+                                            />
+                                        </TouchableOpacity>
+                                    </>
+                                ) : (
+                                    <Text
+                                        style={[
+                                            styles.placeholderText,
+                                            { color: colors.text },
+                                        ]}>
+                                        Enter a message and I'll respond here!
+                                    </Text>
+                                )}
+                            </View>
                         </View>
                     </ScrollView>
                 </TouchableWithoutFeedback>
@@ -204,28 +210,51 @@ export default function ChatScreen() {
                                 keyboardHeight > 0 ? keyboardHeight : 16,
                         },
                     ]}>
-                    <View style={[styles.pickerContainer]}>
-                        <Text style={[styles.space, { color: colors.text }]}></Text>
-                        <Picker
-                            selectedValue={tone}
-                            onValueChange={(itemValue) => setTone(itemValue)}
-                            style={[styles.picker, { color: colors.text }]}
-                            dropdownIconColor={colors.text}
-                            itemStyle={{ fontSize: 14 }}>
+                    <View
+                        style={[
+                            styles.toneSelector,
+                            { borderColor: colors.border },
+                        ]}>
+                        <Text
+                            style={[
+                                styles.toneSelectorLabel,
+                                { color: colors.text },
+                            ]}>
+                            Set Tone:
+                        </Text>
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}>
                             {TONES.map((t) => (
-                                <Picker.Item
+                                <TouchableOpacity
                                     key={t}
-                                    label={
-                                        t.charAt(0).toUpperCase() + t.slice(1)
-                                    }
-                                    value={t}
-                                    color={colors.text}
-                                />
+                                    style={[
+                                        styles.toneButton,
+                                        tone === t && styles.selectedToneButton,
+                                        { borderColor: colors.border },
+                                    ]}
+                                    onPress={() => setTone(t)}>
+                                    <Text
+                                        style={[
+                                            styles.toneButtonText,
+                                            {
+                                                color:
+                                                    tone === t
+                                                        ? colors.background
+                                                        : colors.text,
+                                            },
+                                        ]}>
+                                        {t.charAt(0).toUpperCase() + t.slice(1)}
+                                    </Text>
+                                </TouchableOpacity>
                             ))}
-                        </Picker>
-                        <Text style={[styles.space, { color: colors.text }]}></Text>
+                        </ScrollView>
                     </View>
-                    <View style={styles.inputWrapper}>
+                    <View
+                        style={[
+                            styles.inputWrapper,
+                            { borderColor: colors.border },
+                        ]}>
                         {image && (
                             <View style={styles.imagePreviewContainer}>
                                 <Image
@@ -309,31 +338,42 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     aiResponseWrapper: {
-        backgroundColor: "rgba(255, 255, 255, 0.1)",
-        borderRadius: 12,
-        padding: 16,
+        borderWidth: 1,
+        borderRadius: 10,
+        padding: 15,
         marginBottom: 16,
     },
     inputContainer: {
         padding: 16,
-        borderTopWidth: 1,
-        borderTopColor: "#333333",
     },
-    pickerContainer: {
-        backgroundColor: "none",
-        borderRadius: 12,
-        marginBottom: 12,
-        overflow: "hidden",
+    toneSelector: {
+        borderWidth: 1,
+        borderRadius: 10,
+        padding: 15,
+        marginBottom: 10,
     },
-    picker: {
-        height: 60,
-        fontSize: 12,
-        justifyContent: "center",
+    toneSelectorLabel: {
+        fontSize: 16,
+        fontWeight: "bold",
+        marginBottom: 18,
+    },
+    toneButton: {
+        borderWidth: 1,
+        borderRadius: 20,
+        paddingVertical: 5,
+        paddingHorizontal: 10,
+        marginRight: 10,
+    },
+    selectedToneButton: {
+        backgroundColor: "#FFFFFF",
+    },
+    toneButtonText: {
+        fontSize: 14,
     },
     inputWrapper: {
-        padding: 12,
-        backgroundColor: "rgba(255, 255, 255, 0.1)",
-        borderRadius: 12,
+        borderWidth: 1,
+        padding: 15,
+        borderRadius: 10,
         flexDirection: "column",
     },
     actionBtn: {
@@ -343,9 +383,9 @@ const styles = StyleSheet.create({
         marginTop: 8,
     },
     input: {
-        borderRadius: 12,
+        borderRadius: 10,
         fontSize: 16,
-        minHeight: 50,
+        minHeight: 40,
         maxHeight: 120,
     },
     sendButton: {
@@ -355,6 +395,9 @@ const styles = StyleSheet.create({
     placeholderText: {
         fontSize: 16,
         textAlign: "center",
+    },
+    skeletonContainer: {
+        width: "100%",
     },
     skeletonLine: {
         height: 20,
@@ -387,6 +430,8 @@ const styles = StyleSheet.create({
 const markdownStyles = (colors) => ({
     body: {
         color: colors.text,
+        fontSize: 28,
+        fontWeight: "bold",
     },
     heading1: {
         fontSize: 34,
@@ -407,7 +452,7 @@ const markdownStyles = (colors) => ({
         color: colors.text,
     },
     paragraph: {
-        fontSize: 18,
+        fontSize: 20,
         fontWeight: "500",
         marginBottom: 14,
         lineHeight: 24,

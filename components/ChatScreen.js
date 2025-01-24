@@ -164,7 +164,9 @@ export default function ChatScreen() {
                     <ScrollView
                         ref={scrollViewRef}
                         contentContainerStyle={styles.scrollContent}
-                        keyboardShouldPersistTaps="handled">
+                        keyboardShouldPersistTaps="handled"
+                        onScrollBeginDrag={Keyboard.dismiss}
+                    >
                         <View style={styles.responseContainer}>
                             <View
                                 style={[
@@ -328,20 +330,25 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     scrollContent: {
+        height: "100%",
         width: "100%",
         margin: 0,
         margin: "auto",
         justifyContent: "center",
     },
     responseContainer: {
+        height: "100%",
         padding: 16,
         justifyContent: "center",
     },
     aiResponseWrapper: {
+        overflow: "hidden",
+        height: "100%",
         borderWidth: 1,
         borderRadius: 10,
         padding: 15,
         marginBottom: 16,
+        position: "relative",
     },
     inputContainer: {
         padding: 16,
@@ -405,7 +412,9 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     copyButton: {
-        alignSelf: "flex-end",
+        position: "absolute",
+        bottom: 8,
+        right: 8,
         padding: 8,
     },
     imagePreviewContainer: {

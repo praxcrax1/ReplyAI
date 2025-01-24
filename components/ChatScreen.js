@@ -22,6 +22,7 @@ import { endpoint } from "../index.json";
 import * as ImagePicker from "expo-image-picker";
 import * as Clipboard from "expo-clipboard";
 import * as FileSystem from "expo-file-system";
+import { getAuth } from "firebase/auth";
 
 const TONES = ["flirty", "playful", "professional", "friendly", "sarcastic"];
 
@@ -35,6 +36,7 @@ export default function ChatScreen() {
     const [keyboardHeight, setKeyboardHeight] = useState(0);
     const loaderValue = new Animated.Value(0);
     const [image, setImage] = useState(null);
+    const auth = getAuth();
 
     useEffect(() => {
         if (isThinking) {
@@ -90,10 +92,16 @@ export default function ChatScreen() {
         }
 
         try {
+            const user = auth.currentUser;
+            if (!user) {
+                throw new Error("User is not authenticated");
+            }
+            const idToken = await user.getIdToken()
             const response = await fetch(`${endpoint}/api/ai/generate`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
+                    Authorization: `Bearer ${idToken}`,
                 },
                 body: JSON.stringify({ input, tone, imageBase64 }),
             });

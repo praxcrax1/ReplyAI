@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+
 import {
     View,
     Text,
@@ -13,15 +14,25 @@ import {
     KeyboardAvoidingView,
     TouchableWithoutFeedback,
 } from "react-native";
-import { Picker } from "@react-native-picker/picker";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
-import { useTheme } from "../styles/theme";
-import Markdown from "react-native-markdown-display";
-import { endpoint } from "../index.json";
-import * as Clipboard from "expo-clipboard";
 
-const TONES = ["flirty", "playful", "professional", "friendly", "sarcastic", "cheeky"];
+import { Picker } from "@react-native-picker/picker";
+
+import { SafeAreaView } from "react-native-safe-area-context";
+
+import { Ionicons } from "@expo/vector-icons";
+
+import { useTheme } from "../styles/theme";
+
+import Markdown from "react-native-markdown-display";
+
+import { endpoint } from "../index.json";
+
+import * as Clipboard from "expo-clipboard";
+import { LinearGradient } from "expo-linear-gradient";
+
+const { width, height } = Dimensions.get("window");
+
+const TONES = ["flirty", "playful", "professional", "friendly", "sarcastic"];
 
 export default function ChatScreen() {
     const [input, setInput] = useState("");
@@ -31,7 +42,6 @@ export default function ChatScreen() {
     const { colors } = useTheme();
     const scrollViewRef = useRef(null);
     const [keyboardHeight, setKeyboardHeight] = useState(0);
-
     const loaderValue = new Animated.Value(0);
 
     useEffect(() => {
@@ -88,13 +98,13 @@ export default function ChatScreen() {
 
     const renderSkeletonLoader = () => {
         const pastelColors = [
-            "#FFB3B3", // Soft Red
-            "#FFD6A5", // Soft Orange
-            "#FFFACD", // Soft Yellow
-            "#C8FACC", // Soft Green
-            "#ADD8FF", // Soft Blue
-            "#D7BCE8", // Soft Indigo
-            "#E8B3E8", // Soft Violet
+            "#FFB3B3",
+            "#FFD6A5",
+            "#FFFACD",
+            "#C8FACC",
+            "#ADD8FF",
+            "#D7BCE8",
+            "#E8B3E8",
         ];
 
         const colorInterpolation = loaderValue.interpolate({
@@ -121,8 +131,6 @@ export default function ChatScreen() {
             </View>
         );
     };
-
-
 
     const copyToClipboard = async () => {
         await Clipboard.setStringAsync(aiResponse);
@@ -181,14 +189,14 @@ export default function ChatScreen() {
                     <View
                         style={[
                             styles.pickerContainer,
-                            { backgroundColor: colors.secondary },
                         ]}>
                         <Picker
                             selectedValue={tone}
                             onValueChange={(itemValue) => setTone(itemValue)}
                             style={[styles.picker, { color: colors.text }]}
                             dropdownIconColor={colors.text}
-                            itemStyle={{ height: 120, fontSize: 14 }}>
+                            itemStyle={{ fontSize: 14 }}
+                        >
                             {TONES.map((t) => (
                                 <Picker.Item
                                     key={t}
@@ -202,32 +210,47 @@ export default function ChatScreen() {
                         </Picker>
                     </View>
                     <View style={styles.inputWrapper}>
-                        <TextInput
-                            style={[
-                                styles.input,
-                                {
-                                    color: colors.text,
-                                    backgroundColor: colors.secondary,
-                                },
-                            ]}
-                            value={input}
-                            onChangeText={setInput}
-                            placeholder="Type your message here..."
-                            placeholderTextColor={colors.placeholder}
-                            multiline
-                        />
-                        <TouchableOpacity
-                            style={[
-                                styles.sendButton,
-                                { backgroundColor: colors.primary },
-                            ]}
-                            onPress={handleSend}>
-                            <Ionicons
-                                name="send"
-                                size={24}
-                                color={colors.background}
+                        <View>
+                            <TextInput
+                                style={[
+                                    styles.input,
+                                    {
+                                        color: colors.text,
+                                    },
+                                ]}
+                                value={input}
+                                onChangeText={setInput}
+                                placeholder="Type your message here..."
+                                placeholderTextColor={colors.placeholder}
+                                multiline
                             />
-                        </TouchableOpacity>
+                        </View>
+                        <View style={styles.actionBtn}>
+                            <TouchableOpacity
+                                style={[
+                                    styles.sendButton,
+                                    { backgroundColor: colors.primary },
+                                ]}
+                                onPress={handleSend}>
+                                <Ionicons
+                                    name="attach"
+                                    size={18}
+                                    color={colors.background}
+                                />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[
+                                    styles.sendButton,
+                                    { backgroundColor: colors.primary },
+                                ]}
+                                onPress={handleSend}>
+                                <Ionicons
+                                    name="send"
+                                    size={18}
+                                    color={colors.background}
+                                />
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
             </KeyboardAvoidingView>
@@ -245,7 +268,7 @@ const styles = StyleSheet.create({
     scrollContent: {
         width: "100%",
         margin: 0,
-        margin : "auto",
+        margin: "auto",
         justifyContent: "center",
     },
     responseContainer: {
@@ -263,39 +286,42 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         borderTopColor: "#333333",
     },
-    pickerContainer: { 
-        height: 100,
-        backgroundColor: "none",
+    pickerContainer: {
+        backgroundColor : "none",
         borderRadius: 12,
         marginBottom: 12,
+        overflow: "hidden",
+    },
+    picker : {
+        height: 60,
+        fontSize: 12,
+        justifyContent: "center",
     },
     inputWrapper: {
+        padding: 12,
+        backgroundColor: "rgba(255, 255, 255, 0.1)",
+        borderRadius: 12,
+        flexDirection: "column",
+    },
+    actionBtn: {
         flexDirection: "row",
-        alignItems: "flex-end",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginTop: 8,
     },
     input: {
-        flex: 1,
         borderRadius: 12,
-        paddingHorizontal: 16,
-        paddingTop: 12,
-        paddingBottom: 12,
         fontSize: 16,
         minHeight: 50,
         maxHeight: 120,
     },
     sendButton: {
-        marginLeft: 8,
-        padding: 12,
-        borderRadius: 24,
-        alignItems: "center",
-        justifyContent: "center",
+        padding: 10,
+        borderRadius: 30,
     },
     placeholderText: {
         fontSize: 16,
         textAlign: "center",
-    },
-    skeletonContainer: {
-        alignItems: "flex-start",
     },
     skeletonLine: {
         height: 20,

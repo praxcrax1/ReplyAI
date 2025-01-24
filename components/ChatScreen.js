@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-
 import {
     View,
     Text,
@@ -13,24 +12,17 @@ import {
     Platform,
     KeyboardAvoidingView,
     TouchableWithoutFeedback,
+    Image,
 } from "react-native";
-
 import { Picker } from "@react-native-picker/picker";
-
 import { SafeAreaView } from "react-native-safe-area-context";
-
 import { Ionicons } from "@expo/vector-icons";
-
 import { useTheme } from "../styles/theme";
-
 import Markdown from "react-native-markdown-display";
-
 import { endpoint } from "../index.json";
-
+import * as ImagePicker from "expo-image-picker";
 import * as Clipboard from "expo-clipboard";
-import { LinearGradient } from "expo-linear-gradient";
-
-const { width, height } = Dimensions.get("window");
+import * as FileSystem from "expo-file-system";
 
 const TONES = ["flirty", "playful", "professional", "friendly", "sarcastic"];
 
@@ -43,6 +35,7 @@ export default function ChatScreen() {
     const scrollViewRef = useRef(null);
     const [keyboardHeight, setKeyboardHeight] = useState(0);
     const loaderValue = new Animated.Value(0);
+    const [image, setImage] = useState(null);
 
     useEffect(() => {
         if (isThinking) {
@@ -65,11 +58,38 @@ export default function ChatScreen() {
         }
     }, [isThinking]);
 
+    const pickImage = async () => {
+        const { status } =
+            await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status === "granted") {
+            let result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                aspect: [4, 3],
+                quality: 1,
+            });
+
+            if (!result.canceled) {
+                setImage(result.assets[0].uri); // Store the image URI
+            }
+        } else {
+            alert("Permission to access camera roll is required!");
+        }
+    };
+
     const handleSend = async () => {
-        if (input.trim() === "") return;
+        if (input.trim() === "" && !image) return;
 
         setIsThinking(true);
         setAiResponse("");
+
+        let imageBase64 = null;
+        if (image) {
+            // Convert the image to a base64 string
+            imageBase64 = await FileSystem.readAsStringAsync(image, {
+                encoding: FileSystem.EncodingType.Base64,
+            });
+        }
 
         try {
             const response = await fetch(`${endpoint}/api/ai/generate`, {
@@ -77,7 +97,7 @@ export default function ChatScreen() {
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ input, tone }),
+                body: JSON.stringify({ input, tone, image: imageBase64 }),
             });
 
             if (!response.ok) {
@@ -186,17 +206,13 @@ export default function ChatScreen() {
                                 keyboardHeight > 0 ? keyboardHeight : 16,
                         },
                     ]}>
-                    <View
-                        style={[
-                            styles.pickerContainer,
-                        ]}>
+                    <View style={[styles.pickerContainer]}>
                         <Picker
                             selectedValue={tone}
                             onValueChange={(itemValue) => setTone(itemValue)}
                             style={[styles.picker, { color: colors.text }]}
                             dropdownIconColor={colors.text}
-                            itemStyle={{ fontSize: 14 }}
-                        >
+                            itemStyle={{ fontSize: 14 }}>
                             {TONES.map((t) => (
                                 <Picker.Item
                                     key={t}
@@ -210,6 +226,23 @@ export default function ChatScreen() {
                         </Picker>
                     </View>
                     <View style={styles.inputWrapper}>
+                        {image && (
+                            <View style={styles.imagePreviewContainer}>
+                                <Image
+                                    source={{ uri: image }}
+                                    style={styles.imagePreview}
+                                />
+                                <TouchableOpacity
+                                    style={styles.removeImageButton}
+                                    onPress={() => setImage(null)}>
+                                    <Ionicons
+                                        name="close-circle"
+                                        size={24}
+                                        color="white"
+                                    />
+                                </TouchableOpacity>
+                            </View>
+                        )}
                         <View>
                             <TextInput
                                 style={[
@@ -231,7 +264,7 @@ export default function ChatScreen() {
                                     styles.sendButton,
                                     { backgroundColor: colors.primary },
                                 ]}
-                                onPress={handleSend}>
+                                onPress={pickImage}>
                                 <Ionicons
                                     name="attach"
                                     size={18}
@@ -287,12 +320,12 @@ const styles = StyleSheet.create({
         borderTopColor: "#333333",
     },
     pickerContainer: {
-        backgroundColor : "none",
+        backgroundColor: "none",
         borderRadius: 12,
         marginBottom: 12,
         overflow: "hidden",
     },
-    picker : {
+    picker: {
         height: 60,
         fontSize: 12,
         justifyContent: "center",
@@ -331,6 +364,20 @@ const styles = StyleSheet.create({
     copyButton: {
         alignSelf: "flex-end",
         padding: 8,
+    },
+    imagePreviewContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: 12,
+    },
+    imagePreview: {
+        width: 40,
+        height: 40,
+        borderRadius: 8,
+        marginRight: 8,
+    },
+    removeImageButton: {
+        padding: 5,
     },
 });
 

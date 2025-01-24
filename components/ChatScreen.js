@@ -70,7 +70,7 @@ export default function ChatScreen() {
             });
 
             if (!result.canceled) {
-                setImage(result.assets[0].uri); // Store the image URI
+                setImage(result.assets[0].uri);
             }
         } else {
             alert("Permission to access camera roll is required!");
@@ -97,7 +97,7 @@ export default function ChatScreen() {
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ input, tone, image: imageBase64 }),
+                body: JSON.stringify({ input, tone, imageBase64 }),
             });
 
             if (!response.ok) {
